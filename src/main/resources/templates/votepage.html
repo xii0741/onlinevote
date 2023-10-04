@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>投票系统</title>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body>
+    <div id="app">
+        <h1>投票系统</h1>
+
+        <ul>
+            <li v-for="item in voteItems" :key="item.投票項目編號">
+                {{ item.投票項目名稱 }}
+                <button @click="vote(item.投票項目編號)">投票</button>
+                <span>投票数: {{ item.vote_count }}</span>
+            </li>
+        </ul>
+    </div>
+
+    <script>
+        new Vue({
+            el: "#app",
+            data: {
+                voteItems: [] 
+            },
+            mounted() {
+                this.fetchVoteItems();
+                this.refreshVoteCounts(); 
+            },
+            methods: {
+                fetchVoteItems() {
+                    // 使用axios发送GET请求获取投票选项数据
+                    axios.get("/voteitem")
+                        .then(response => {
+                            this.voteItems = response.data;
+                        })
+                        .catch(error => {
+                            console.error(error);
+                        });
+                },
+                vote(itemNum) {
+                    axios.post("/votes", { item_id: itemNum })
+                        .then(response => {
+                            this.updateVoteCount(itemNum);
+                        })
+                        .catch(error => {
+                            console.error(error);
+                            alert("投票失败，请稍后再试！");
+                        });
+                },
+                updateVoteCount(itemNum) {
+                    axios.get(`/votes?item_id=${itemNum}`)
+                        .then(response => {
+                            const vote_count = response.data[0].vote_count;
+                            const itemToUpdate = this.voteItems.find(item => item.投票項目編號 === itemNum);
+                            if (itemToUpdate) {
+                                itemToUpdate.vote_count = vote_count;
+                                this.$forceUpdate();
+                            }
+                        })
+                        .catch(error => {
+                            console.error(error);
+                        });
+                },
+                refreshVoteCounts() {
+                    setInterval(() => {
+                        for (const item of this.voteItems) {
+                            this.updateVoteCount(item.投票項目編號);
+                            this.fetchVoteItems()
+                        }
+                    }, 5000);
+                }
+            }
+        });
+    </script>
+</body>
+</html>

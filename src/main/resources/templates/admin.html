@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>投票項目管理</title>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body>
+    <div id="app">
+        <h1>投票項目管理</h1>
+
+        <form @submit.prevent="addVoteItem">
+            <label>新的投票项目名称: </label>
+            <input v-model="newVoteItemName" type="text" required>
+            <button type="submit">添加</button>
+        </form>
+
+        <div>
+            <h2>投票項目列表</h2>
+            <ul>
+                <li v-for="item in voteItems" :key="item.投票項目編號">
+                    {{ item.投票項目名稱 }}
+                    <button @click="deleteVoteItem(item.投票項目編號)">刪除</button>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        new Vue({
+            el: "#app",
+            data: {
+                newVoteItemName: "",
+                voteItems: [],
+                maxItemNum: 0
+            },
+            mounted() {
+                this.fetchVoteItems();
+            },
+            methods: {
+                fetchVoteItems() {
+                    axios.get("/voteitem")
+                        .then(response => {
+                            this.voteItems = response.data;
+
+                            if (this.voteItems.length > 0) {
+                                this.maxItemNum = Math.max(...this.voteItems.map(item => item.投票項目編號));
+                            } else {
+                                this.maxItemNum = 0;
+                            }
+                        })
+                        .catch(error => {
+                            console.error(error);
+                        });
+                },
+                addVoteItem() {
+                    axios.post("/voteitem", {
+                        item_num: this.maxItemNum + 1,
+                        item_name: this.newVoteItemName,
+                        behave: "add"
+                    })
+                        .then(response => {
+                            this.newVoteItemName = "";
+                            location.reload();
+                        })
+                        .catch(error => {
+                            console.error(error);
+                        });
+                },
+                deleteVoteItem(voteItemId) {
+                    axios.post("/voteitem", {
+                        item_num: voteItemId,
+                        behave: "delete"
+                    })
+                        .then(response => {
+                            location.reload();
+                        })
+                        .catch(error => {
+                            console.error(error);
+                        });
+                }
+            }
+        });
+    </script>
+</body>
+</html>
